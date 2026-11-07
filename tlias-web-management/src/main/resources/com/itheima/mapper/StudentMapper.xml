@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.mapper.StudentMapper">
+    <!-- 查询学员信息（关联班级表带出班级名称） -->
+    <select id="list" resultType="com.itheima.pojo.Student">
+        select
+            s.*,
+            c.name clazz_name
+        from student s
+        left join clazz c on s.clazz_id = c.id
+        <where>
+            <if test="name != null and name !=''">
+                s.name like CONCAT('%', #{name}, '%')
+            </if>
+            <if test="degree != null">
+                and s.degree = #{degree}
+            </if>
+            <if test="clazzId != null">
+                and s.clazz_id = #{clazzId}
+            </if>
+        </where>
+        order by s.update_time desc
+    </select>
+
+    <!-- 根据id查询学员 -->
+    <select id="getById" resultType="com.itheima.pojo.Student">
+        select * from student where id = #{id}
+    </select>
+
+    <!-- 修改学员基本信息 -->
+    <!-- 注意：故意不更新 violation_count / violation_score，这两个字段只由违纪处理接口维护，
+         否则在编辑弹窗里改个手机号就会把已有的违纪记录清零 -->
+    <update id="updateById">
+        update student
+        <set>
+            <if test="name != null and name !=''">
+                name = #{name},
+            </if>
+            <if test="no != null and no !=''">
+                no = #{no},
+            </if>
+            <if test="gender != null">
+                gender = #{gender},
+            </if>
+            <if test="phone != null and phone !=''">
+                phone = #{phone},
+            </if>
+            <if test="idCard != null and idCard !=''">
+                id_card = #{idCard},
+            </if>
+            <if test="isCollege != null">
+                is_college = #{isCollege},
+            </if>
+            <if test="address != null and address !=''">
+                address = #{address},
+            </if>
+            <if test="degree != null">
+                degree = #{degree},
+            </if>
+            <if test="graduationDate != null">
+                graduation_date = #{graduationDate},
+            </if>
+            <if test="clazzId != null">
+                clazz_id = #{clazzId},
+            </if>
+            update_time = #{updateTime},
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 违纪处理：次数和扣分都是累加，不是覆盖 -->
+    <update id="updateViolation">
+        update student
+        set violation_count = violation_count + 1,
+            violation_score = violation_score + #{score},
+            update_time = #{updateTime}
+        where id = #{id}
+    </update>
+
+    <!-- 批量删除学员 -->
+    <delete id="deleteByIds">
+        delete from student where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 按学历统计学员人数 -->
+    <select id="countStudentDegreeData" resultType="java.util.Map">
+        select
+            (case degree
+                when 1 then '初中'
+                when 2 then '高中'
+                when 3 then '大专'
+                when 4 then '本科'
+                when 5 then '硕士'
+                when 6 then '博士'
+                else '其他' end) name,
+            count(*) value
+        from student
+        group by degree
+        order by degree
+    </select>
+
+    <!-- 统计指定班级的学员人数 -->
+    <select id="countByClazzId" resultType="java.lang.Integer">
+        select count(*) from student where clazz_id = #{clazzId}
+    </select>
+
+    <!-- 查询违纪扣分最高的学员（AI 数据分析用） -->
+    <select id="topViolation" resultType="java.util.Map">
+        select s.name name,
+               s.violation_count violationCount,
+               s.violation_score violationScore,
+               c.name clazzName
+        from student s
+        left join clazz c on s.clazz_id = c.id
+        where s.violation_count &gt; 0
+        order by s.violation_score desc, s.violation_count desc
+        limit #{limit}
+    </select>
+</mapper>

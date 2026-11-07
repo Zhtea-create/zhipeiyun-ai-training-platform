@@ -1,0 +1,23 @@
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.iws
+*.ipr
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+.factorypath
+
+### 日志输出 ###
+logs/
+
+### nginx 运行时文件（只保留 conf/nginx.conf） ###
+nginx/*
+!nginx/conf/
+nginx/conf/*
+!nginx/conf/nginx.conf
+
+### 本地工具配置 ###
+.claude/

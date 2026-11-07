@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.mapper.ClazzMapper">
+    <select id="list" resultType="com.itheima.pojo.Clazz">
+        select
+            c.*,
+            e.name master_name,
+            <!-- 班级状态由开课/结课时间实时推导，表里没有该字段 -->
+            <!-- 用 curdate() 而非 now()：end_date 是 DATE，与 DATETIME 比较会被补成当天 00:00，导致结课当天零点就判定为已结课 -->
+            <!-- 分支顺序不能颠倒：本表存在结课时间早于开课时间的脏数据，CASE 取第一个命中的分支 -->
+            <!-- 注意 < 在 XML 里要写成 &lt;，> 则可以直接写 -->
+            (case when curdate() > c.end_date    then '已结课'
+                  when curdate() &lt; c.begin_date then '未开班'
+                  else '在读中' end) status
+        from clazz c
+        left join emp e on c.master_id = e.id
+        <where>
+            <if test="name != null and name !=''">
+                c.name like CONCAT('%', #{name}, '%')
+            </if>
+            <if test="begin != null and end != null">
+                and c.end_date between #{begin} and #{end}
+            </if>
+        </where>
+        order by c.update_time desc
+    </select>
+
+    <!-- 查询所有班级（下拉框用，不需要 status 和班主任姓名） -->
+    <select id="listAll" resultType="com.itheima.pojo.Clazz">
+        select id, name, room, begin_date, end_date, master_id, subject, create_time, update_time
+        from clazz
+        order by update_time desc
+    </select>
+
+    <!-- 根据id查询班级 -->
+    <select id="getById" resultType="com.itheima.pojo.Clazz">
+        select * from clazz where id = #{id}
+    </select>
+
+    <!-- 修改班级 -->
+    <update id="updateById">
+        update clazz
+        <set>
+            <if test="name != null and name !=''">
+                name = #{name},
+            </if>
+            <if test="room != null and room !=''">
+                room = #{room},
+            </if>
+            <if test="beginDate != null">
+                begin_date = #{beginDate},
+            </if>
+            <if test="endDate != null">
+                end_date = #{endDate},
+            </if>
+            <if test="masterId != null">
+                master_id = #{masterId},
+            </if>
+            <if test="subject != null">
+                subject = #{subject},
+            </if>
+            update_time = #{updateTime},
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 删除班级 -->
+    <delete id="deleteById">
+        delete from clazz where id = #{id}
+    </delete>
+
+    <!-- 统计该班级下的学员数量，删除班级前校验用 -->
+    <select id="countStudentByClazzId" resultType="java.lang.Integer">
+        select count(*) from student where clazz_id = #{clazzId}
+    </select>
+
+    <!-- 按班级统计学员人数（没有学员的班级也返回 0） -->
+    <select id="countStudentCountData" resultType="java.util.Map">
+        select c.name name, count(s.id) value
+        from clazz c
+        left join student s on c.id = s.clazz_id
+        group by c.id, c.name
+        order by count(s.id) desc
+    </select>
+
+    <!-- 统计全部班级数量 -->
+    <select id="countAll" resultType="java.lang.Integer">
+        select count(*) from clazz
+    </select>
+</mapper>

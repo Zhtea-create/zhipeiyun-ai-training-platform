@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spring Boot 默认使用 Logback 作为日志实现，文件名固定为 logback-spring.xml
+  会被 Spring Boot 自动识别，并且支持 <springProfile> 等 Spring 专属特性。
+-->
+<configuration>
+
+    <!-- 从 application.yml 读取应用名与日志目录，避免两处硬编码 -->
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="tlias-web-management"/>
+    <property name="LOG_DIR" value="logs"/>
+    <property name="LOG_FILE" value="${LOG_DIR}/${appName}.log"/>
+
+    <!-- 控制台输出：带颜色、时间、日志级别、线程、类名、消息 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出：按大小滚动，保留历史与压缩 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${appName}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 本项目的日志（DeptController 等）放开到 debug 级别 -->
+    <logger name="com.itheima" level="debug" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- 开发环境打印 MyBatis SQL（替换掉 application.yml 里的 StdOutImpl 后生效） -->
+    <springProfile name="dev">
+        <logger name="com.itheima.mapper" level="debug"/>
+    </springProfile>
+
+    <!-- 根日志：默认 info，同时输出到控制台与文件 -->
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
