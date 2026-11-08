@@ -1,0 +1,7 @@
+﻿48D153E702A0E071939C6E8A962EDC7D43BB91B01147A4780D9E6B767CDEB11A  tlias-web-management/src/main/java/com/itheima/service/impl/AiServiceImpl.java
+CB4119AC53493F0093E3046A5714C7A4CAE59573138FE037CAC00B935B2F7D28  tlias-web-management/src/main/java/com/itheima/ai/AiDataService.java
+A8A2F18B94FC78E4842EACF82DAFC6A80169C92D6B58EC31B18806EFBB844CEB  tlias-web-management/src/main/java/com/itheima/ai/ReportData.java
+21C71273AD365C4FD37ED2FDC514145BE1071398642B347ACDF2CEE7A92B649A  tlias-web-management/src/main/java/com/itheima/mapper/StudentMapper.java
+296CBEE65E4DF4530396D6DE7A1A8EB8D1A15E2DA7035A137092FF3C66DBAB8D  tlias-web-management/src/main/resources/com/itheima/mapper/StudentMapper.xml
+4BEBB116133A37C02C4CD0A84A0FAEBE0A9D712676074D3804AAF010634D8DBE  tlias-web-management/src/test/resources/report/fixture.sql
+CD119D295A965FAE9E2C34318970D2CF8E300CFCC3370F1064F2F36560BFAE73  tlias-web-management/src/test/java/com/itheima/ai/ReportBaselineTest.java

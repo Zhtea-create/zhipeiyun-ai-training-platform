@@ -42,4 +42,13 @@ public interface ClazzMapper {
     //统计全部班级数量
     Integer countAll();
 
+    // 模型只需要班级标识和名称；限制候选数量，避免发送整个班级实体。
+    @org.apache.ibatis.annotations.Select("""
+            select id, name from clazz
+            where (#{keyword} = '' or locate(#{keyword}, name) > 0)
+            order by case when name = #{keyword} then 0 else 1 end, id
+            limit 21
+            """)
+    List<Map<String, Object>> findForAi(@org.apache.ibatis.annotations.Param("keyword") String keyword);
+
 }

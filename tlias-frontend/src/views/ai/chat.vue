@@ -1,5 +1,7 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAiChatStore } from '@/stores/ai-chat'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, Delete, MagicStick, Promotion } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -14,12 +16,9 @@ const suggestions = [
   '最近有哪些操作记录？',
 ]
 
-const messages = ref([])
-const input = ref('')
-const sending = ref(false)
-const mode = ref('offline')
+const chatStore = useAiChatStore()
+const { messages, input, sending, mode } = storeToRefs(chatStore)
 const messagesEl = ref(null)
-let seq = 0
 
 const modeLabel = computed(() => {
   if (mode.value === 'live') return '真实模型'
@@ -35,60 +34,31 @@ const scrollToBottom = async () => {
   if (el) el.scrollTop = el.scrollHeight
 }
 
-const loadStatus = async () => {
-  try {
-    const res = await getAiStatusApi()
-    mode.value = res.data?.mode || 'mock'
-  } catch {
-    mode.value = 'offline'
-  }
-}
-
-const pushAssistant = (content) => {
-  messages.value.push({ id: ++seq, role: 'assistant', content })
-  scrollToBottom()
-}
-
 const useSuggestion = (text) => {
   input.value = text
   send()
 }
 
 const send = async () => {
-  const text = input.value.trim()
-  if (!text || sending.value) return
-
-  const history = messages.value.map(({ role, content }) => ({ role, content }))
-  messages.value.push({ id: ++seq, role: 'user', content: text })
-  input.value = ''
-  scrollToBottom()
-
-  sending.value = true
-  try {
-    const res = await aiChatApi({ message: text, history })
-    const answer = res.data?.answer
-    if (res.data?.mode) mode.value = res.data.mode
-    pushAssistant(answer || '我暂时没有生成有效回答，请换个问法试试。')
-  } catch {
-    pushAssistant(
-      'AI 服务暂时不可用。\n\n请确认后端 AI 模块已启动；如果还没有配置模型 Key，系统会使用演示模式，基于数据库真实聚合数据回答。',
-    )
-  } finally {
-    sending.value = false
-  }
+  await chatStore.sendMessage(aiChatApi)
 }
 
 const clearChat = () => {
-  messages.value = []
+  chatStore.clear()
+  chatStore.loadStatus(getAiStatusApi)
   ElMessage.success('已清空对话')
 }
 
-onMounted(loadStatus)
+watch(() => messages.value.length, scrollToBottom)
+onMounted(() => {
+  chatStore.loadStatus(getAiStatusApi)
+  scrollToBottom()
+})
 </script>
 
 <template>
   <div class="page ai-page">
-    <PageHeader title="AI 助手" subtitle="用自然语言查询系统数据，AI 会结合当前数据快照回答">
+    <PageHeader title="AI 助手" subtitle="用自然语言提问，AI 按需查询班级、学员与员工数据">
       <template #actions>
         <el-tag :type="modeType" effect="light" round>
           <span class="mode-dot"></span>
@@ -171,7 +141,7 @@ onMounted(loadStatus)
 
         <div class="side-note">
           <el-icon><MagicStick /></el-icon>
-          <p>AI 只会读取聚合后的统计数据，不会访问密码、身份证号等敏感字段。</p>
+          <p>AI 使用只读工具查询统计及必要摘要，不获取密码、身份证号、手机号，不修改业务数据。</p>
         </div>
       </aside>
     </div>

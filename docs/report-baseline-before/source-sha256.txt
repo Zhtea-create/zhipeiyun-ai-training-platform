@@ -1,0 +1,4 @@
+﻿D3F005336CD404519C5359A3A82053C63C5E09518E646AD4D059A9C8F08060A0  tlias-web-management/src/main/java/com/itheima/service/impl/AiServiceImpl.java
+120C6A16588AE693C42C3DD49FDE3CEFF39F556BE72668E4D02EAB7ED620D9BE  tlias-web-management/src/main/java/com/itheima/ai/AiDataService.java
+4BEBB116133A37C02C4CD0A84A0FAEBE0A9D712676074D3804AAF010634D8DBE  tlias-web-management/src/test/resources/report/fixture.sql
+6EE4BC28C633F189B651DD88AF83D6B64624C4E75947EF0C654B7A6B524DBE14  tlias-web-management/src/test/java/com/itheima/ai/ReportBaselineTest.java

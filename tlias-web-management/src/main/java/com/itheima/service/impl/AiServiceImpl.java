@@ -4,6 +4,8 @@ import com.itheima.ai.AiClient;
 import com.itheima.ai.AiDataService;
 import com.itheima.ai.AiMessage;
 import com.itheima.ai.AiProperties;
+import com.itheima.ai.ReportData;
+import java.util.Locale;
 import com.itheima.pojo.AiChatRequest;
 import com.itheima.pojo.AiChatResponse;
 import com.itheima.pojo.AiReportRequest;
@@ -64,7 +66,7 @@ public class AiServiceImpl implements AiService {
             }
 
             messages.add(new AiMessage("user", question));
-            String answer = aiClient.chat(messages);
+            String answer = aiClient.chatWithTools(messages);
             return new AiChatResponse(answer, "live");
         } catch (Exception e) {
             log.warn("AI 对话调用失败，回退演示模式：{}", e.getMessage());
@@ -77,27 +79,28 @@ public class AiServiceImpl implements AiService {
     @Override
     public AiReportResponse report(AiReportRequest request) {
         String type = request == null || request.getType() == null ? "student" : request.getType();
+        type = type.trim().toLowerCase(Locale.ROOT);
         Integer clazzId = request == null ? null : request.getClazzId();
-        String fallback = "student".equalsIgnoreCase(type)
-                ? aiDataService.buildStudentReport(clazzId)
-                : aiDataService.buildEmployeeReport();
+        ReportData data = aiDataService.loadReportData(type, clazzId);
 
         if (!aiClient.isLive()) {
-            return new AiReportResponse(fallback, "mock");
+            return new AiReportResponse(aiDataService.renderReport(data), "mock");
         }
 
         try {
             List<AiMessage> messages = List.of(
-                    new AiMessage("system", aiDataService.buildReportPrompt(type)),
+                    new AiMessage("system", aiDataService.buildReportPrompt(data)),
                     new AiMessage("user", "请根据以上数据生成报告。"));
             String markdown = aiClient.chat(messages);
             if (markdown == null || markdown.isBlank()) {
-                return new AiReportResponse(fallback, "mock");
+                return new AiReportResponse(aiDataService.renderReport(data)
+                        + "\n\n> 真实模型暂时不可用，已回退到演示模式。", "mock");
             }
             return new AiReportResponse(markdown, "live");
         } catch (Exception e) {
             log.warn("AI 报告生成失败，回退演示模式：{}", e.getMessage());
-            return new AiReportResponse(fallback + "\n\n> 真实模型暂时不可用，已回退到演示模式。", "mock");
+            return new AiReportResponse(aiDataService.renderReport(data)
+                    + "\n\n> 真实模型暂时不可用，已回退到演示模式。", "mock");
         }
     }
 

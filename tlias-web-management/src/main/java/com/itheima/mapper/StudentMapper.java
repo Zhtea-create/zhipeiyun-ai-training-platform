@@ -50,4 +50,11 @@ public interface StudentMapper {
     //查询违纪扣分最高的学员（AI 数据分析用）
     List<Map<String, Object>> topViolation(@Param("limit") int limit);
 
+    List<Map<String, Object>> reportDegrees(@Param("clazzId") Integer clazzId);
+
+    List<Map<String, Object>> reportViolations(@Param("clazzId") Integer clazzId, @Param("limit") int limit);
+
+    Integer countForAi(@Param("clazzId") Integer clazzId, @Param("degree") Integer degree,
+                       @Param("gender") Integer gender);
+
 }

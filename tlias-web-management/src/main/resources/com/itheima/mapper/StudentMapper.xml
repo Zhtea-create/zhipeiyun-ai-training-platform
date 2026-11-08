@@ -119,4 +119,32 @@
         order by s.violation_score desc, s.violation_count desc
         limit #{limit}
     </select>
+    <!-- Report scope is applied in SQL, before grouping or top-N selection. -->
+    <select id="reportDegrees" resultType="java.util.Map">
+        select (case degree
+            when 1 then '初中' when 2 then '高中' when 3 then '大专'
+            when 4 then '本科' when 5 then '硕士' when 6 then '博士'
+            else '其他' end) name, count(*) value
+        from student
+        <if test="clazzId != null">where clazz_id = #{clazzId}</if>
+        group by degree order by degree
+    </select>
+
+    <select id="reportViolations" resultType="java.util.Map">
+        select s.name name, s.violation_count violationCount,
+               s.violation_score violationScore, c.name clazzName
+        from student s left join clazz c on s.clazz_id = c.id
+        where s.violation_count &gt; 0
+        <if test="clazzId != null">and s.clazz_id = #{clazzId}</if>
+        order by s.violation_score desc, s.violation_count desc, s.id
+        limit #{limit}
+    </select>
+    <select id="countForAi" resultType="java.lang.Integer">
+        select count(*) from student
+        <where>
+            <if test="clazzId != null">and clazz_id = #{clazzId}</if>
+            <if test="degree != null">and degree = #{degree}</if>
+            <if test="gender != null">and gender = #{gender}</if>
+        </where>
+    </select>
 </mapper>

@@ -4,7 +4,7 @@
 
 - **后端**：Spring Boot 4 + MyBatis + MySQL + JWT，补全了学员统计、操作日志与 AI 模块
 - **前端**：全新重构的 Vue 3 + Vite + Element Plus 管理后台（`tlias-frontend/`）
-- **AI**：支持 OpenAI 兼容协议（DeepSeek / 通义 / Kimi / 本地 vLLM 等），默认无 Key 时使用**演示模式**
+- **AI**：Spring AI 2.0.2 + DeepSeek，使用 ChatClient 和只读工具调用按需查询业务数据，无 Key 时使用**演示模式**
 
 旧版前端源码已归档（不在仓库中），新前端在 `tlias-frontend/` 中。
 
@@ -145,7 +145,7 @@ nginx 配置：`nginx/conf/nginx.conf`
 
 ### 接入真实模型
 
-后端按 **OpenAI 兼容协议** 调用 `POST {base-url}/chat/completions`。推荐 DeepSeek：
+后端使用 **Spring AI ChatClient / OpenAiChatModel** 调用 OpenAI 兼容的 `POST {base-url}/chat/completions`。保留现有 `ai.*` 配置和环境变量，默认使用 DeepSeek：
 
 ```powershell
 # PowerShell（当前终端会话有效）
@@ -164,7 +164,17 @@ AI_MODEL=deepseek-chat
 
 重启后端后，`/ai/status` 会返回 `mode = "live"`。
 
-其他 OpenAI 兼容服务（通义千问 DashScope、Kimi、智谱、本地 vLLM）只需替换 `AI_BASE_URL` 和 `AI_MODEL`。
+其他 OpenAI 兼容服务需替换 `AI_BASE_URL` 和 `AI_MODEL`，聊天模型还必须支持工具调用。服务地址使用完整 API 根路径（例如需要 `/v1` 的服务应在 base-url 中包含 `/v1`）。
+
+### 按需查询与报告
+
+- 聊天通过 `AiQueryTools` 的 `@Tool` 方法查询班级候选、按班级/学历/性别组合统计人数、学历分布、违纪排名、员工统计、部门和最近操作摘要。不再预先拼接全局数据快照。
+- 例如“前端就业90期有多少本科生”：模型先查班级 ID，再请求带 `clazzId` 和 `degree=4` 的统计工具；Spring AI 执行调用循环。名称不明确时提示用户确认。
+- 工具仅使用参数化查询，不开放任意 SQL 或写操作。每轮最多调用同一工具 4 次、所有工具共 12 次；单次模型 HTTP 调用不自动重试，超时沿用 `ai.timeout-seconds`。
+- 报告继续复用一次准备的 `ReportData`，不注册查询工具，避免破坏已有的班级范围与 SQL 查询预算。
+- 当前历史消息继续由前端提供，后端最多接受最近 8 条 user/assistant 消息；本次未引入后端会话持久化或流式输出。
+- 前端使用 Pinia 保留路由切换中的聊天状态，并通过按登录账号校验的 sessionStorage 在同一标签页刷新后恢复最近200条消息和草稿；清空对话、退出登录或更换账号会清理缓存，关闭标签页后不提供长期历史。
+- 新增测试使用隔离 H2 数据库和本机模拟 OpenAI 服务，不读取真实 Key 或业务 MySQL。运行：`mvn -Dtest=ReportBaselineTest,SpringAiIntegrationTest test`（JDK 25）。详见 [迁移说明](docs/spring-ai-migration.md)。
 
 > Key 只从环境变量读取，不会进入前端代码或 git 仓库。真实模型调用失败时，后端会自动回退到演示模式，并在回答末尾提示。
 
@@ -176,7 +186,7 @@ AI_MODEL=deepseek-chat
 | POST | `/ai/chat` | 请求 `{message, history}`，返回 `{answer, mode}` |
 | POST | `/ai/report` | 请求 `{type, clazzId?, begin?, end?}`，返回 `{markdown, mode}` |
 
-AI 只会读取聚合后的统计数据，不会把密码、身份证号、手机号等敏感字段发送给模型。
+AI 仅获取统计和必要业务摘要（如班级名称、违纪排名中的姓名），不向模型发送密码、身份证号、手机号或操作日志的完整参数与返回值。
 
 ---
 

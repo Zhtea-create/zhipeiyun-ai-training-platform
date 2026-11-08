@@ -9,4 +9,9 @@ public interface AiClient {
 
     // 调用大模型，返回回答文本
     String chat(List<AiMessage> messages);
+
+    // 聊天可使用业务查询工具；报告仍只使用已准备好的数据。
+    default String chatWithTools(List<AiMessage> messages) {
+        return chat(messages);
+    }
 }

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { useUserStore } from '@/stores/user'
 
 const request = axios.create({
   baseURL: '/api',
@@ -31,7 +32,7 @@ request.interceptors.response.use(
     const status = error.response?.status
     if (status === 401) {
       ElMessage.error('登录已失效，请重新登录')
-      localStorage.removeItem('loginUser')
+      useUserStore().logout()
       if (router.currentRoute.value.path !== '/login') {
         router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
       }
